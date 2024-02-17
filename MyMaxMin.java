@@ -12,48 +12,47 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.conf.Configuration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MyMaxMin {
-	public static class MaxTemperatureMapper extends
-			Mapper<LongWritable, Text, Text, Text> {
-	public static final int MISSING = 9999;
-		
-	@Override
-		public void map(LongWritable arg0, Text Value, Context context)
-				throws IOException, InterruptedException {
-			
-		String line = Value.toString();
-			\
-			if (!(line.length() == 0)) {
-				
-				String date = line.substring(6, 14);
+	public static class MaxTemperatureMapper extends Mapper<LongWritable, Text, Text, Text> {
 
-				float temp_Max = Float.parseFloat(line.substring(39, 45).trim());
-				
-				
-				
-				float temp_Min = Float.parseFloat(line.substring(47, 53).trim());
+	    public static final int MISSING = 9999;
 
-			
-				if (temp_Max > 30.0) {
-					
-					
-					context.write(new Text("The Day is Hot Day :" + date),
-										new Text(String.valueOf(temp_Max)));
-				}
+	    @Override
+	    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+	        String line = value.toString();
 
-			
-				if (temp_Min < 15) {
-					
-			
-					context.write(new Text("The Day is Cold Day :" + date),
-							new Text(String.valueOf(temp_Min)));
-				}
-			}
-		}
+	        if (!line.isEmpty()) {
+	            String date = line.substring(6, 14);
+	            
+	            // Regular expression pattern to match temperature values
+	            Pattern pattern = Pattern.compile("\\d{2}\\.\\d");
+	            Matcher matcher = pattern.matcher(line);
+	            float temp_Max = MISSING;
+	            float temp_Min = MISSING;
 
+	            // Find maximum and minimum temperatures using regular expressions
+	            if (matcher.find()) {
+	                temp_Max = Float.parseFloat(matcher.group());
+	            }
+	            if (matcher.find()) {
+	                temp_Min = Float.parseFloat(matcher.group());
+	            }
+
+	            if (temp_Max != MISSING && temp_Min != MISSING) {
+	                if (temp_Max > 30.0) {
+	                    context.write(new Text("The Day is Hot Day: " + date), new Text(String.valueOf(temp_Max)));
+	                }
+
+	                if (temp_Min < 15) {
+	                    context.write(new Text("The Day is Cold Day: " + date), new Text(String.valueOf(temp_Min)));
+	                }
+	            }
+	        }
+	    }
 	}
-
 
 	
 	public static class MaxTemperatureReducer extends
